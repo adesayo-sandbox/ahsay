@@ -1,0 +1,107 @@
+name: Cluster Destroy
+
+# -----------------------------------------------------------------------------
+# Pipeline to destroy an existing cluster
+# -----------------------------------------------------------------------------
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_agent_version:
+        description: 'Build Agent Version'
+        required: true
+        default: '0.0.44'
+        type: string
+      cloud_version:
+        description: 'Cloud Version'
+        required: true
+        default: 'c2'
+        type: choice
+        options:
+          - c2
+      scope:
+        description: 'Scope'
+        required: true
+        default: 'np'
+        type: choice
+        options:
+          - np
+          - pd
+      location:
+        description: 'Location'
+        required: true
+        default: 'westus2'
+        type: choice
+        options:
+          - eastus2
+          - westus2
+      cluster:
+        description: 'Cluster'
+        required: true
+        type: choice
+        options:
+          # Personal Dev Clusters
+          - aomotalade
+          - dmcdowell
+          - hiteshsaini
+          - jdalaimo
+          - jdbye
+          - ochambers
+          - rgale
+          - snathan
+          - unaik
+          - mcp-ops-a
+          - mcp-ops-b
+          # CI/CD
+          - sbx-ci-a
+          - sbx-ci-b
+          - sbx-ci-c
+          - sbx-ci-d
+          # Github Action Runners
+          - sbx-ghar-a
+          - npd-ghar-a
+          - prd-ghar-a
+          # General Purpose
+          - sbx-gen-a
+          - adt-gen-a
+          - qat-gen-a
+          - spt-gen-a
+          - prt-gen-a
+          - prd-gen-a
+          # CrossPlane
+          - sbx-cxp-a
+          - npd-cxp-a
+          - prd-cxp-a
+          # InfoSec
+          - sbx-info-a
+          # POS
+          - sbx-pos-a
+          - npd-pos-a
+          - prd-pos-a
+
+# Ensure the environment lock is evaluated sequentially vs latest
+concurrency:
+  group: cluster-destroy-${{ inputs.cloud_version }}-${{ inputs.scope }}-${{ inputs.location }}-${{ inputs.cluster }}
+  cancel-in-progress: false
+
+jobs:
+  destroy:
+    name: Destroy - ${{ inputs.cluster }}
+    # Use self-hosted runners if available, otherwise use GitHub-hosted
+    runs-on: ubuntu-latest
+    # Alternative for self-hosted runners:
+    # runs-on: [self-hosted, linux, ${{ inputs.cloud_version }}-${{ inputs.scope }}-${{ inputs.location }}-ecp-aks-agents]
+    
+    environment: ${{ inputs.cloud_version }}-${{ inputs.scope }}-${{ inputs.location }}-ecp-aks-${{ inputs.cluster }}
+    
+    container:
+      image: ${{ inputs.scope }}ecp.azurecr.io/ecp/build-agent:${{ inputs.build_agent_version }}
+      credentials:
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
